@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+TOKET = ''
+TOBRUT = ''
+
 from IPython.core.magic import register_line_magic
 from IPython.display import display, HTML
 from urllib.parse import urlparse
@@ -31,8 +33,7 @@ iRON = os.environ
 
 KAGGLE = 'KAGGLE_DATA_PROXY_TOKEN' in iRON
 
-TOKET = ''
-TOBRUT = ''
+CIVDOM = ['civitai.com', 'civitai.red']
 
 @register_line_magic
 def say(line):
@@ -91,7 +92,7 @@ def netorare(line):
 
     cwd = Path.cwd()
     url = parts[0].replace('\\', '')
-    CHG = any(domain in url for domain in ['civitai.com', 'huggingface.co', 'github.com'])
+    CHG = any(domain in url for domain in ['civitai.com', 'civitai.red', 'huggingface.co', 'github.com'])
     DriveGoogle = 'drive.google.com' in url
 
     path = lambda s: '/' in s or '~/' in s
@@ -140,6 +141,16 @@ def resizer(b, size=512):
     i.resize(s, Image.LANCZOS).save(o, format='PNG')
     o.seek(0)
     return o
+
+def get_civdom(url: str) -> str | None:
+    try:
+        h = urlparse(url).netloc.lower()
+        for d in CIVDOM:
+            if d in h:
+                return d
+    except:
+        pass
+    return None
 
 def civitai_headers():
     return {'User-Agent': 'CivitaiLink:Automatic1111'}
@@ -198,21 +209,21 @@ def civitai_infotags(j, p, fn, versionId=None):
 
     info.write_text(json.dumps(data, indent=4))
 
-def civitai_earlyAccess(j, versionId=None):
+def civitai_earlyAccess(j, versionId=None, civdom=None):
     v = get_civitai(j, versionId)
     if not v: return False
 
     if v.get('availability') == 'EarlyAccess' or v.get('earlyAccessEndsAt'):
         modelId = j.get('id') or v.get('modelId')
         modelVersionId = v.get('id')
-        page = f'https://civitai.com/models/{modelId}?modelVersionId={modelVersionId}'
+        page = f'https://{civdom}/models/{modelId}?modelVersionId={modelVersionId}'
         print(f'{page}\n-> The model version is in early access and requires payment for downloading.')
         return True
 
     return False
 
 def get_fn(url):
-    if any(x in url for x in ['civitai.com', 'drive.google.com']): return None
+    if any(x in url for x in ['civitai.com', 'civitai.red', 'drive.google.com']): return None
     return Path(urlparse(url).path).name
 
 def get_json(api_url, headers):
@@ -242,6 +253,9 @@ def get_url(url, fn):
     Important fix: do NOT append ?token=... to CivitAI/Backblaze signed URLs (they are sensitive to modification).
     Only append TOKET for non-Civitai hosts when TOKET is set and needed.
     """
+
+    civdom = get_civdom(url)
+
     def maybe_add_token(u):
         # Add token only for non-Civitai hosts and when TOKET is set.
         try:
@@ -251,7 +265,7 @@ def get_url(url, fn):
             return u
 
         # If host is Civitai or Backblaze storage, do NOT modify the signed URL.
-        if 'civitai.com' in host or 'b2.civitai.com' in host or host.startswith('b2.'):
+        if any(d in host for d in CIVDOM) or host.startswith('b2.'):
             return u
 
         if not TOKET:
@@ -277,7 +291,7 @@ def get_url(url, fn):
                 t = re.search(r'oid sha256:([a-fA-F0-9]{64})', res.text)
                 if t:
                     sha256 = t.group(1)
-                    api_url = f'https://civitai.com/api/v1/model-versions/by-hash/{sha256}'
+                    api_url = f'https://{civdom}/api/v1/model-versions/by-hash/{sha256}'
                     j = get_json(api_url, civitai_headers())
                     if j:
                         r = next((f for f in j.get('files', []) if f.get('hashes', {}).get('SHA256', '').lower() == sha256.lower()), None)
@@ -289,15 +303,15 @@ def get_url(url, fn):
         url = url.replace('/blob/', '/resolve/')
         return maybe_add_token(url), j, versionId
 
-    elif 'civitai.com' in url:
+    elif civdom in url:
         input_url = url
         url = url.split('?token=')[0] if '?token=' in url else url
 
         # If user passed an API-style download link that points to api/download/models/<versionId>,
         # return that URL unchanged — do NOT append TOKET or mutate signed URLs.
-        if 'civitai.com/api/download/models/' in url:
+        if f'/api/download/models/' in url:
             versionId = url.split('models/')[1].split('/')[0].split('?')[0]
-            api_url = f'https://civitai.com/api/v1/model-versions/{versionId}'
+            api_url = f'https://{civdom}/api/v1/model-versions/{versionId}'
             j = get_json(api_url, civitai_headers())
 
             if j:
@@ -308,15 +322,15 @@ def get_url(url, fn):
             return url, None, None
 
         # Standard model page URL: resolve via API to find the model file downloadUrl (already signed).
-        elif 'civitai.com/models/' in url:
+        elif '/models/' in url:
             versionId = None
             modelId = url.split('models/')[1].split('/')[0].split('?')[0]
             if '?modelVersionId=' in url:
                 versionId = url.split('?modelVersionId=')[1]
-            api_url = f'https://civitai.com/api/v1/models/{modelId}'
+            api_url = f'https://{civdom}/api/v1/models/{modelId}'
             j = get_json(api_url, civitai_headers())
 
-            if not j or civitai_earlyAccess(j, versionId):
+            if not j or civitai_earlyAccess(j, versionId, civdom):
                 return None, None, None
 
             v = get_civitai(j, versionId)
@@ -340,7 +354,8 @@ def ariari(url, fp, fn):
     url, j, versionId = get_url(url, fn)
     if not url: return
 
-    civitai_api = ('civitai.com/api/download/models/' in url and bool(TOKET))
+    civdom = get_civdom(url)
+    civitai_api = (f'{civdom}/api/download/models/' in url and bool(TOKET))
 
     if civitai_api:
         try:
@@ -359,12 +374,12 @@ def ariari(url, fp, fn):
 
     cmd = [
         'aria2c',
-        f"--header=User-Agent: {civitai_headers()['User-Agent'] if 'civitai.com' in url else 'Mozilla/5.0'}",
+        f"--header=User-Agent: {civitai_headers()['User-Agent'] if f'{civdom}' in url else 'Mozilla/5.0'}",
         '--allow-overwrite=true', '--console-log-level=error', '--stderr=true',
         '-c', '-x16', '-s16', '-k1M', '-j5'
     ]
 
-    if 'civitai.com/api/download/models/' in url and TOKET: cmd.append(f"--header=Authorization: Bearer {TOKET}")
+    if f'{civdom}/api/download/models/' in url and TOKET: cmd.append(f"--header=Authorization: Bearer {TOKET}")
     if TOBRUT and 'huggingface.co' in url: cmd.append(f'--header=Authorization: Bearer {TOBRUT}')
 
     if fn: cmd += ['-o', fn]
