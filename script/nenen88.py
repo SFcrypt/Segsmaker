@@ -33,7 +33,7 @@ iRON = os.environ
 
 KAGGLE = 'KAGGLE_DATA_PROXY_TOKEN' in iRON
 
-CIVDOM = ['civitai.com', 'civitai.red']
+CIVITAI = ['civitai.com', 'civitai.red']
 
 @register_line_magic
 def say(line):
@@ -92,7 +92,7 @@ def netorare(line):
 
     cwd = Path.cwd()
     url = parts[0].replace('\\', '')
-    CHG = any(domain in url for domain in ['civitai.com', 'civitai.red', 'huggingface.co', 'github.com'])
+    CHG = any(domain in url for domain in [*CIVITAI, 'huggingface.co', 'github.com'])
     DriveGoogle = 'drive.google.com' in url
 
     path = lambda s: '/' in s or '~/' in s
@@ -145,7 +145,7 @@ def resizer(b, size=512):
 def get_civdom(url: str) -> str | None:
     try:
         h = urlparse(url).netloc.lower()
-        for d in CIVDOM:
+        for d in CIVITAI:
             if d in h:
                 return d
     except:
@@ -209,21 +209,21 @@ def civitai_infotags(j, p, fn, versionId=None):
 
     info.write_text(json.dumps(data, indent=4))
 
-def civitai_earlyAccess(j, versionId=None, civdom=None):
+def civitai_earlyAccess(j, versionId=None, civitai=None):
     v = get_civitai(j, versionId)
     if not v: return False
 
     if v.get('availability') == 'EarlyAccess' or v.get('earlyAccessEndsAt'):
         modelId = j.get('id') or v.get('modelId')
         modelVersionId = v.get('id')
-        page = f'https://{civdom}/models/{modelId}?modelVersionId={modelVersionId}'
+        page = f'https://{civitai}/models/{modelId}?modelVersionId={modelVersionId}'
         print(f'{page}\n-> The model version is in early access and requires payment for downloading.')
         return True
 
     return False
 
 def get_fn(url):
-    if any(x in url for x in ['civitai.com', 'civitai.red', 'drive.google.com']): return None
+    if any(x in url for x in [*CIVITAI, 'drive.google.com']): return None
     return Path(urlparse(url).path).name
 
 def get_json(api_url, headers):
@@ -254,7 +254,7 @@ def get_url(url, fn):
     Only append TOKET for non-Civitai hosts when TOKET is set and needed.
     """
 
-    civdom = get_civdom(url)
+    civitai = get_civdom(url)
 
     def maybe_add_token(u):
         # Add token only for non-Civitai hosts and when TOKET is set.
@@ -265,7 +265,7 @@ def get_url(url, fn):
             return u
 
         # If host is Civitai or Backblaze storage, do NOT modify the signed URL.
-        if any(d in host for d in CIVDOM) or host.startswith('b2.'):
+        if any(d in host for d in CIVITAI) or host.startswith('b2.'):
             return u
 
         if not TOKET:
@@ -289,29 +289,45 @@ def get_url(url, fn):
             try:
                 res = requests.get(re.sub(r'/(resolve|blob)/', '/raw/', url), headers=h)
                 t = re.search(r'oid sha256:([a-fA-F0-9]{64})', res.text)
+
                 if t:
                     sha256 = t.group(1)
-                    api_url = f'https://{civdom}/api/v1/model-versions/by-hash/{sha256}'
-                    j = get_json(api_url, civitai_headers())
-                    if j:
-                        r = next((f for f in j.get('files', []) if f.get('hashes', {}).get('SHA256', '').lower() == sha256.lower()), None)
-                        if not r:
-                            j = None
+                    j = None
+
+                    for c in CIVITAI:
+                        try:
+                            api_url = f'https://{c}/api/v1/model-versions/by-hash/{sha256}'
+                            j_try = get_json(api_url, civitai_headers())
+
+                            if not j_try:
+                                continue
+
+                            r = next(
+                                (f for f in j_try.get('files', [])
+                                if f.get('hashes', {}).get('SHA256', '').lower() == sha256.lower()),
+                                None
+                            )
+
+                            if r:
+                                j = j_try
+                                break
+
+                        except Exception:
+                            continue
+
             except Exception:
                 j = None
 
         url = url.replace('/blob/', '/resolve/')
         return maybe_add_token(url), j, versionId
 
-    elif civdom in url:
+    elif civitai in url:
         input_url = url
         url = url.split('?token=')[0] if '?token=' in url else url
 
-        # If user passed an API-style download link that points to api/download/models/<versionId>,
-        # return that URL unchanged — do NOT append TOKET or mutate signed URLs.
-        if f'/api/download/models/' in url:
+        if f'{civitai}/api/download/models/' in url:
             versionId = url.split('models/')[1].split('/')[0].split('?')[0]
-            api_url = f'https://{civdom}/api/v1/model-versions/{versionId}'
+            api_url = f'https://{civitai}/api/v1/model-versions/{versionId}'
             j = get_json(api_url, civitai_headers())
 
             if j:
@@ -321,16 +337,16 @@ def get_url(url, fn):
 
             return url, None, None
 
-        # Standard model page URL: resolve via API to find the model file downloadUrl (already signed).
-        elif '/models/' in url:
+        elif f'{civitai}/models/' in url:
             versionId = None
             modelId = url.split('models/')[1].split('/')[0].split('?')[0]
             if '?modelVersionId=' in url:
                 versionId = url.split('?modelVersionId=')[1]
-            api_url = f'https://{civdom}/api/v1/models/{modelId}'
+
+            api_url = f'https://{civitai}/api/v1/models/{modelId}'
             j = get_json(api_url, civitai_headers())
 
-            if not j or civitai_earlyAccess(j, versionId, civdom):
+            if not j or civitai_earlyAccess(j, versionId, civitai):
                 return None, None, None
 
             v = get_civitai(j, versionId)
@@ -338,8 +354,6 @@ def get_url(url, fn):
                 print(f'Unable to find download URL for\n-> {input_url}\n')
                 return None, None, None
 
-            # IMPORTANT: downloadUrl provided by the API is typically a signed URL (Backblaze).
-            # Do NOT modify it (no token appended), return it as-is so the signature remains valid.
             url = next((f.get('downloadUrl') for f in v.get('files', []) if f.get('downloadUrl')), None)
             if not url:
                 print(f'Unable to find download URL for\n-> {input_url}\n')
@@ -347,15 +361,14 @@ def get_url(url, fn):
 
             return url, j, versionId
 
-    # Fallback: return the maybe-tokenized URL for non-civitai providers.
     return maybe_add_token(url), None, None
 
 def ariari(url, fp, fn):
     url, j, versionId = get_url(url, fn)
     if not url: return
 
-    civdom = get_civdom(url)
-    civitai_api = (f'{civdom}/api/download/models/' in url and bool(TOKET))
+    civitai = get_civdom(url)
+    civitai_api = (f'{civitai}/api/download/models/' in url and bool(TOKET))
 
     if civitai_api:
         try:
@@ -374,12 +387,12 @@ def ariari(url, fp, fn):
 
     cmd = [
         'aria2c',
-        f"--header=User-Agent: {civitai_headers()['User-Agent'] if f'{civdom}' in url else 'Mozilla/5.0'}",
+        f"--header=User-Agent: {civitai_headers()['User-Agent'] if f'{civitai}' in url else 'Mozilla/5.0'}",
         '--allow-overwrite=true', '--console-log-level=error', '--stderr=true',
         '-c', '-x16', '-s16', '-k1M', '-j5'
     ]
 
-    if f'{civdom}/api/download/models/' in url and TOKET: cmd.append(f"--header=Authorization: Bearer {TOKET}")
+    if f'{civitai}/api/download/models/' in url and TOKET: cmd.append(f"--header=Authorization: Bearer {TOKET}")
     if TOBRUT and 'huggingface.co' in url: cmd.append(f'--header=Authorization: Bearer {TOBRUT}')
 
     if fn: cmd += ['-o', fn]
@@ -425,6 +438,7 @@ def ariari(url, fp, fn):
                         break_line = True
                         break
 
+        civitai = None
         error = error_code + error_line
         for lines in error: print(f'  {lines}')
 
