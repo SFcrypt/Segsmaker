@@ -8,7 +8,7 @@ def launch_lora_downloader():
 
     os.chdir(os.path.expanduser("~"))
 
-    os.makedirs(".swarmui/download", exist_ok=True)
+    os.makedirs(".civitai", exist_ok=True)
 
     box_path = os.path.join(os.getcwd(), ".swarmui/download/box.py")
     if not os.path.exists(box_path):
@@ -17,7 +17,7 @@ def launch_lora_downloader():
         with open(box_path, "wb") as f:
             f.write(r.content)
 
-    sys.path.append(os.path.join(os.getcwd(), ".swarmui/download"))
+    sys.path.append(os.path.join(os.getcwd(), ".civitai/box.py"))
     from box import load_style
 
     load_style()
