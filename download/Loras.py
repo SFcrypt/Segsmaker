@@ -3,13 +3,13 @@ import ipywidgets as widgets
 from IPython.display import display, clear_output
 from IPython import get_ipython
 
-%cd -q $HOME
-
-# crear carpeta destino
-os.makedirs(".swarmui/download", exist_ok=True)
+# rutas base
+HOME = os.path.expanduser("~")
+SWARM_PATH = os.path.join(HOME, ".swarmui", "download")
+os.makedirs(SWARM_PATH, exist_ok=True)
 
 # descargar box.py
-box_path = os.path.join(os.getcwd(), ".swarmui/download/box.py")
+box_path = os.path.join(SWARM_PATH, "box.py")
 if not os.path.exists(box_path):
     url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
     r = requests.get(url)
@@ -17,7 +17,7 @@ if not os.path.exists(box_path):
         f.write(r.content)
 
 # importar box.py
-sys.path.append(os.path.join(os.getcwd(), ".swarmui/download"))
+sys.path.append(SWARM_PATH)
 from box import load_style
 
 load_style()
@@ -41,7 +41,9 @@ download_btn = widgets.Button(
 download_btn.add_class("seg-button")
 
 def descargar_lora(b):
-    %cd -q $LORA
+    lora_path = os.environ.get("LORA", os.path.join(HOME, "lora"))
+    os.makedirs(lora_path, exist_ok=True)
+
     main_container.children = [output]
     with output:
         clear_output()
@@ -52,7 +54,7 @@ def descargar_lora(b):
         try:
             get_ipython().run_line_magic(
                 "download",
-                f"{Link} {Nombre}.safetensors"
+                f"{Link} {os.path.join(lora_path, Nombre)}.safetensors"
             )
         except:
             pass
@@ -68,4 +70,9 @@ form_box = widgets.VBox([
 form_box.add_class("seg-box")
 
 main_container.children = [form_box]
-display(main_container)
+
+def launch():
+    display(main_container)
+
+if __name__ == "__main__":
+    launch()
