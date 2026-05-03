@@ -33,7 +33,7 @@ def run_update():
         shell=True)
 
     clear_output()
-    say("<b>【{red} Listo{d} 】{red}</b>")
+    say("<b>【{red} SwarmUI Instalado{d} 】{red}</b>")
 
 if __name__ == "__main__":
     run_update()
