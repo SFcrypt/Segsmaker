@@ -42,7 +42,7 @@ def launch_lora_downloader():
 
     def descargar_lora(b):
         if ipy:
-            ipy.run_line_magic("cd", "$LORA")
+            ipy.run_line_magic("cd", "$CKPT")
         main_container.children = [output]
         with output:
             clear_output()
