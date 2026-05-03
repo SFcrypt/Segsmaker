@@ -73,7 +73,7 @@ def launch_interface():
             clear_output()
             ip = get_ipython()
             if ip:
-                ip.run_line_magic("uninstall_webui", "")
+                ip.run_line_magic("run", ".swarmui/Uninstall.py")
 
     btn_instalar = widgets.Button(description="instalar")
     btn_desinstalar = widgets.Button(description="desinstalar")
