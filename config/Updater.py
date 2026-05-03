@@ -34,7 +34,7 @@ def run_update():
     )
 
     clear_output()
-    say("<b>【{red} Done{d} 】{red}</b>")
+    say("<b>【{red} Listo{d} 】{red}</b>")
 
 if __name__ == "__main__":
     run_update()
