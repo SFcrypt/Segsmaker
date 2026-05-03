@@ -1,15 +1,24 @@
-import os, sys
+import os, sys, requests
 import ipywidgets as widgets
 from IPython.display import display, clear_output
 from IPython import get_ipython
 
 %cd -q $HOME
-if not os.path.exists(".ColabUI"):
-    !git clone https://github.com/SFcrypt/ColabUI.git .ColabUI
-    clear_output()
 
-sys.path.append(os.path.join(os.getcwd(), ".ColabUI"))
-from Animated_box import load_style
+# crear carpeta destino
+os.makedirs(".swarmui/download", exist_ok=True)
+
+# descargar box.py
+box_path = os.path.join(os.getcwd(), ".swarmui/download/box.py")
+if not os.path.exists(box_path):
+    url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
+    r = requests.get(url)
+    with open(box_path, "wb") as f:
+        f.write(r.content)
+
+# importar box.py
+sys.path.append(os.path.join(os.getcwd(), ".swarmui/download"))
+from box import load_style
 
 load_style()
 
