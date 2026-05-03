@@ -62,11 +62,10 @@ def launch_lora_downloader():
     download_btn.on_click(descargar_lora)
 
     form_box = widgets.VBox([
-        widgets.HTML("<div class='seg-title'>Descargar LoRA</div>"),
+        widgets.HTML("<div class='seg-title'>Descargar</div>"),
         link_input,
         nombre_input,
-        download_btn
-    ])
+        download_btn])
     form_box.add_class("seg-box")
 
     main_container.children = [form_box]
