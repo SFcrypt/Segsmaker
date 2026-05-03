@@ -1,11 +1,14 @@
 import subprocess
 import os
-from IPython.display import clear_output
+from IPython.display import clear_output, Image, display
 from nenen88 import say
 
+clear_output()
 def run_update():
     base = os.path.expanduser("~/SwarmUI")
+    img = os.path.expanduser("~/.gutris1/loading.png")
 
+    display(Image(filename=img))
     say("<b>【{red} Updating SwarmUI{d} 】{red}</b>")
 
     os.makedirs(f"{base}/dlbackend", exist_ok=True)
@@ -14,24 +17,20 @@ def run_update():
     subprocess.run([
         "git", "clone",
         "https://github.com/SFcrypt/ComfyUI",
-        f"{base}/dlbackend/ComfyUI"
-    ])
+        f"{base}/dlbackend/ComfyUI"])
 
     subprocess.run([
         "git", "clone",
         "https://github.com/SFcrypt/SwarmUI",
-        f"{base}/SwarmUI_tmp"
-    ])
+        f"{base}/SwarmUI_tmp"])
 
     subprocess.run(
         f"cp -r {base}/SwarmUI_tmp/* {base}/",
-        shell=True
-    )
+        shell=True)
 
     subprocess.run(
         f"rm -rf {base}/SwarmUI_tmp",
-        shell=True
-    )
+        shell=True)
 
     clear_output()
     say("<b>【{red} Listo{d} 】{red}</b>")
