@@ -3,76 +3,75 @@ import ipywidgets as widgets
 from IPython.display import display, clear_output
 from IPython import get_ipython
 
-# rutas base
-HOME = os.path.expanduser("~")
-SWARM_PATH = os.path.join(HOME, ".swarmui", "download")
-os.makedirs(SWARM_PATH, exist_ok=True)
+def launch_lora_downloader():
+    ipy = get_ipython()
 
-# descargar box.py
-box_path = os.path.join(SWARM_PATH, "box.py")
-if not os.path.exists(box_path):
-    url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
-    r = requests.get(url)
-    with open(box_path, "wb") as f:
-        f.write(r.content)
+    os.chdir(os.path.expanduser("~"))
 
-# importar box.py
-sys.path.append(SWARM_PATH)
-from box import load_style
+    os.makedirs(".swarmui/download", exist_ok=True)
 
-load_style()
+    box_path = os.path.join(os.getcwd(), ".swarmui/download/box.py")
+    if not os.path.exists(box_path):
+        url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
+        r = requests.get(url)
+        with open(box_path, "wb") as f:
+            f.write(r.content)
 
-main_container = widgets.VBox()
-output = widgets.Output()
+    sys.path.append(os.path.join(os.getcwd(), ".swarmui/download"))
+    from box import load_style
 
-link_input = widgets.Text(
-    placeholder="Link de descarga",
-    layout=widgets.Layout(width="80%", margin="0 0 6px 0"))
-link_input.add_class("seg-input-html")
+    load_style()
 
-nombre_input = widgets.Text(
-    placeholder="Nombre del archivo",
-    layout=widgets.Layout(width="80%", margin="0 0 6px 0"))
-nombre_input.add_class("seg-input-html")
+    main_container = widgets.VBox()
+    output = widgets.Output()
 
-download_btn = widgets.Button(
-    description="Download",
-    layout=widgets.Layout(height="35px", padding="0 0px"))
-download_btn.add_class("seg-button")
+    link_input = widgets.Text(
+        placeholder="Link de descarga",
+        layout=widgets.Layout(width="80%", margin="0 0 6px 0"))
+    link_input.add_class("seg-input-html")
 
-def descargar_lora(b):
-    lora_path = os.environ.get("LORA", os.path.join(HOME, "lora"))
-    os.makedirs(lora_path, exist_ok=True)
+    nombre_input = widgets.Text(
+        placeholder="Nombre del archivo",
+        layout=widgets.Layout(width="80%", margin="0 0 6px 0"))
+    nombre_input.add_class("seg-input-html")
 
-    main_container.children = [output]
-    with output:
-        clear_output()
-        Link = link_input.value.strip()
-        Nombre = "-".join(nombre_input.value.strip().split())
-        if not Link or not Nombre:
-            return
-        try:
-            get_ipython().run_line_magic(
-                "download",
-                f"{Link} {os.path.join(lora_path, Nombre)}.safetensors"
-            )
-        except:
-            pass
+    download_btn = widgets.Button(
+        description="Download",
+        layout=widgets.Layout(height="35px", padding="0 0px"))
+    download_btn.add_class("seg-button")
 
-download_btn.on_click(descargar_lora)
+    def descargar_lora(b):
+        if ipy:
+            ipy.run_line_magic("cd", "$LORA")
+        main_container.children = [output]
+        with output:
+            clear_output()
+            Link = link_input.value.strip()
+            Nombre = "-".join(nombre_input.value.strip().split())
+            if not Link or not Nombre:
+                return
+            try:
+                if ipy:
+                    ipy.run_line_magic(
+                        "download",
+                        f"{Link} {Nombre}.safetensors"
+                    )
+            except:
+                pass
 
-form_box = widgets.VBox([
-    widgets.HTML("<div class='seg-title'>Descargar LoRA</div>"),
-    link_input,
-    nombre_input,
-    download_btn
-])
-form_box.add_class("seg-box")
+    download_btn.on_click(descargar_lora)
 
-main_container.children = [form_box]
+    form_box = widgets.VBox([
+        widgets.HTML("<div class='seg-title'>Descargar LoRA</div>"),
+        link_input,
+        nombre_input,
+        download_btn
+    ])
+    form_box.add_class("seg-box")
 
-def launch():
+    main_container.children = [form_box]
     display(main_container)
 
-if __name__ == "__main__":
-    launch()
+
+# ejecutar
+launch_lora_downloader()
