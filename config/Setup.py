@@ -3,12 +3,9 @@ import urllib.request
 
 def download_file(url, dest_path):
     try:
-        print(f"Descargando: {url}")
         urllib.request.urlretrieve(url, dest_path)
-        print(f"Guardado en: {dest_path}")
     except Exception as e:
         print(f"Error descargando {url}: {e}")
-
 
 def setup_civitai():
     civitai_path = os.path.expanduser("~/.civitai")
@@ -21,7 +18,6 @@ def setup_civitai():
 
     for name, url in files.items():
         download_file(url, os.path.join(civitai_path, name))
-
 
 def setup_swarmui():
     swarmui_path = os.path.expanduser("~/.swarmui")
@@ -36,11 +32,9 @@ def setup_swarmui():
     for name, url in files.items():
         download_file(url, os.path.join(swarmui_path, name))
 
-
 def main():
     setup_civitai()
     setup_swarmui()
-
 
 if __name__ == "__main__":
     main()
