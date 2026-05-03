@@ -72,7 +72,7 @@ def launch_interface():
             clear_output()
             ip = get_ipython()
             if ip:
-                ip.run_line_magic("run", ".swarmui/download/Model.py")
+                ip.run_line_magic("run", ".civitai/Model.py")
 
     def run_loras(_):
         panel.layout.display = "none"
@@ -80,7 +80,7 @@ def launch_interface():
             clear_output()
             ip = get_ipython()
             if ip:
-                ip.run_line_magic("run", ".swarmui/download/Loras.py")
+                ip.run_line_magic("run", ".civitai/Loras.py")
 
     btn_modelos = widgets.Button(description="modelos")
     btn_loras   = widgets.Button(description="loras")
