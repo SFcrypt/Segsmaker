@@ -8,9 +8,9 @@ def launch_lora_downloader():
 
     os.chdir(os.path.expanduser("~"))
 
-    os.makedirs(".swarmui/download", exist_ok=True)
+    os.makedirs(".civitai", exist_ok=True)
 
-    box_path = os.path.join(os.getcwd(), ".swarmui/download/box.py")
+    box_path = os.path.join(os.getcwd(), ".civitai/box.py")
     if not os.path.exists(box_path):
         url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
         r = requests.get(url)
