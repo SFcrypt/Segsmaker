@@ -13,7 +13,7 @@ def setup_civitai():
     os.makedirs(civitai_path, exist_ok=True)
 
     files = {
-        "Loras.py": "https://github.com/SFcrypt/Segsmaker/raw/main/download/Loras.py",
+        "Loras.py": "https://github.com/SFcrypt/Segsmaker/raw/main/colab/Loras.py",
         "Model.py": "https://github.com/SFcrypt/Segsmaker/raw/main/colab/Interfaz.py",
         "Interfaz.py": "https://github.com/SFcrypt/Segsmaker/raw/main/colab/Interfaz.py",
     }
@@ -21,23 +21,8 @@ def setup_civitai():
     for name, url in files.items():
         download_file(url, os.path.join(civitai_path, name))
 
-def setup_swarmui():
-    swarmui_path = "/content/swarmui"
-    os.makedirs(swarmui_path, exist_ok=True)
-
-    files = {
-        "Install.py": "https://github.com/SFcrypt/Segsmaker/raw/main/config/Install.py",
-        "Uninstall.py": "https://github.com/SFcrypt/Segsmaker/raw/main/config/Uninstall.py",
-        "Updater.py": "https://github.com/SFcrypt/Segsmaker/raw/main/config/Updater.py",
-        "SwarmUI.py": "https://github.com/SFcrypt/Segsmaker/raw/main/config/SwarmUI.py",
-    }
-
-    for name, url in files.items():
-        download_file(url, os.path.join(swarmui_path, name))
-
 def main():
     setup_civitai()
-    setup_swarmui()
 
 if __name__ == "__main__":
     main()
