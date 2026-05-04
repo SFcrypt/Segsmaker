@@ -1,4 +1,4 @@
-import os, sys, requests
+import os, sys, requests, importlib.util
 import ipywidgets as widgets
 from IPython.display import display, clear_output
 from IPython import get_ipython
@@ -6,21 +6,27 @@ from IPython import get_ipython
 def launch_lora_downloader():
     ipy = get_ipython()
 
-    os.chdir(os.path.expanduser("~"))
+    os.chdir("/content")
 
-    os.makedirs(".civitai", exist_ok=True)
+    civitai_path = "/content/civitai"
+    os.makedirs(civitai_path, exist_ok=True)
 
-    box_path = os.path.join(os.getcwd(), ".civitai/box.py")
+    # Descargar box.py si no existe
+    box_path = os.path.join(civitai_path, "box.py")
     if not os.path.exists(box_path):
         url = "https://raw.githubusercontent.com/SFcrypt/Segsmaker/main/download/box.py"
         r = requests.get(url)
         with open(box_path, "wb") as f:
             f.write(r.content)
 
-    sys.path.append(os.path.join(os.getcwd(), ".swarmui/download"))
-    from box import load_style
+    # IMPORTAR box.py correctamente (evita conflicto con paquete 'box')
+    spec = importlib.util.spec_from_file_location("box_local", box_path)
+    box_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(box_module)
 
-    load_style()
+    load_style = getattr(box_module, "load_style", None)
+    if load_style:
+        load_style()
 
     main_container = widgets.VBox()
     output = widgets.Output()
@@ -41,8 +47,6 @@ def launch_lora_downloader():
     download_btn.add_class("seg-button")
 
     def descargar_lora(b):
-        if ipy:
-            ipy.run_line_magic("cd", "$LORA")
         main_container.children = [output]
         with output:
             clear_output()
@@ -51,13 +55,13 @@ def launch_lora_downloader():
             if not Link or not Nombre:
                 return
             try:
-                if ipy:
-                    ipy.run_line_magic(
-                        "download",
-                        f"{Link} {Nombre}.safetensors"
-                    )
-            except:
-                pass
+                output_path = os.path.join(civitai_path, f"{Nombre}.safetensors")
+                r = requests.get(Link)
+                with open(output_path, "wb") as f:
+                    f.write(r.content)
+                print(f"Descargado en: {output_path}")
+            except Exception as e:
+                print(f"Error: {e}")
 
     download_btn.on_click(descargar_lora)
 
