@@ -1,4 +1,4 @@
-import os, sys, requests
+import os, sys, requests, importlib.util
 import ipywidgets as widgets
 from IPython.display import display, clear_output
 from IPython import get_ipython
@@ -6,10 +6,8 @@ from IPython import get_ipython
 def launch_lora_downloader():
     ipy = get_ipython()
 
-    # Trabajar en /content
     os.chdir("/content")
 
-    # Crear carpeta civitai
     civitai_path = "/content/civitai"
     os.makedirs(civitai_path, exist_ok=True)
 
@@ -21,11 +19,14 @@ def launch_lora_downloader():
         with open(box_path, "wb") as f:
             f.write(r.content)
 
-    # Añadir ruta correcta
-    sys.path.append(civitai_path)
-    from box import load_style
+    # IMPORTAR box.py correctamente (evita conflicto con paquete 'box')
+    spec = importlib.util.spec_from_file_location("box_local", box_path)
+    box_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(box_module)
 
-    load_style()
+    load_style = getattr(box_module, "load_style", None)
+    if load_style:
+        load_style()
 
     main_container = widgets.VBox()
     output = widgets.Output()
@@ -54,7 +55,6 @@ def launch_lora_downloader():
             if not Link or not Nombre:
                 return
             try:
-                # Guardar directamente en /content/civitai
                 output_path = os.path.join(civitai_path, f"{Nombre}.safetensors")
                 r = requests.get(Link)
                 with open(output_path, "wb") as f:
