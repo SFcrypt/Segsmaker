@@ -15,7 +15,7 @@ def setup_civitai():
     files = {
         "Loras.py": "https://github.com/SFcrypt/Segsmaker/raw/main/download/Loras.py",
         "Model.py": "https://github.com/SFcrypt/Segsmaker/raw/main/colab/Interfaz.py",
-        "Interfaz.py": "https://github.com/SFcrypt/Segsmaker/raw/main/download/Interfaz.py",
+        "Interfaz.py": "https://github.com/SFcrypt/Segsmaker/raw/main/colab/Interfaz.py",
     }
 
     for name, url in files.items():
